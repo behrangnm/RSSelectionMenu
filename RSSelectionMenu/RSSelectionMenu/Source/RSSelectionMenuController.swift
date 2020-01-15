@@ -122,7 +122,12 @@ open class RSSelectionMenu<T>: UIViewController, UIPopoverPresentationController
         super.viewDidLoad()
         
         setupViews()
-        setupLayout()        
+        setupLayout()
+      
+        // make sure keyboard doesn't cover the tableview when there's a searchbar
+        self.automaticallyAdjustsScrollViewInsets = false
+        NotificationCenter.default.addObserver(self, selector: #selector(self.keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
     }
     
     override open func viewWillAppear(_ animated: Bool) {
@@ -261,6 +266,19 @@ open class RSSelectionMenu<T>: UIViewController, UIPopoverPresentationController
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         if (touch.view?.isDescendant(of: tableView!))! { return false }
         return true
+    }
+  
+    // MARK: - Notification responders
+    @objc func keyboardWillShow(_ notification:Notification) {
+        if let keyboardSize = (notification.userInfo?[UIResponder.keyboardFrameBeginUserInfoKey] as? NSValue)?.cgRectValue {
+            tableView?.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: keyboardSize.height, right: 0)
+        }
+    }
+      
+    @objc func keyboardWillHide(_ notification:Notification) {
+        if let keyboardSize = (notification.userInfo?[UIResponder.keyboardFrameBeginUserInfoKey] as? NSValue)?.cgRectValue {
+            tableView?.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        }
     }
     
 }
@@ -447,8 +465,8 @@ extension RSSelectionMenu {
         return alertController
     }
     
-    // navigation bar
-    fileprivate func setNavigationBarTheme() {
+    // navigation bar. Making it public so that we can update it dynamically.
+    public func setNavigationBarTheme() {
         guard let navigationBar = self.navigationBar else { return }
         
         guard let theme = self.navigationBarTheme else {
